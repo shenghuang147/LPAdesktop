@@ -1,0 +1,64 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Set up JDK 8
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'adopt'
+        java-version: '8'
+
+    - name: Prepare
+      run: |
+        sudo apt-get update -y && sudo apt-get install -y maven genisoimage maven
+
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Checkout another repository
+      uses: actions/checkout@v3
+      with:
+        repository: shenghuang147/LPAd_SM-DPPlus_Connector
+        fetch-depth: 0
+        path: LPAd_SM-DPPlus_Connector
+
+    - name: Mvn Install LPAd_SM-DPPlus Connector
+      run: |
+        cd $GITHUB_WORKSPACE/LPAd_SM-DPPlus_Connector
+        mvn install
+        
+    - name: Mvn Install LPAdesktop
+      run: |
+        cd $GITHUB_WORKSPACE
+        mvn install
+    
+    - name: Entrypoint
+      run: |
+        cd $GITHUB_WORKSPACE
+        mvn install
+    
+    - name: Tar Pack
+      run: |
+        cd $GITHUB_WORKSPACE
+        mv target LPAdesktop
+        tar -zcvf LPAdesktop.tar.gz LPAdesktop/*
+
+    - name: Github Release
+      uses: softprops/action-gh-release@v1
+      with:
+        draft: false
+        prerelease: true
+        tag_name: LPAdesktop
+        files: |
+            LPAdesktop.tar.gz
